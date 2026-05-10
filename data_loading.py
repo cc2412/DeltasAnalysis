@@ -6,7 +6,7 @@ import pandas as pd
 from variables import DELTA_DIRS, WORD_I_COL, WORD_J_COL, DELTA_COL, ROOT_DIR
 
 
-def load_metric_for_run(run_dir: Path, metric: str, subdir: str) -> pd.DataFrame:
+def load_metric_for_run(run_dir: Path, metric: str) -> pd.DataFrame:
     """
     Load all training steps for one metric in one run and concatenate them.
     Each tranche parquet file corresponds to one training step.
@@ -20,7 +20,7 @@ def load_metric_for_run(run_dir: Path, metric: str, subdir: str) -> pd.DataFrame
 
     # Find all .parquet files in a folder and sort them to ensure
     # that files are processed in a deterministic order.
-    folder = run_dir / subdir
+    folder = run_dir / metric
     parquet_files = sorted(folder.glob("*.parquet"))
 
     if not parquet_files:
@@ -58,15 +58,15 @@ def merge_metrics_for_run(run_dir: Path, run_id: str) -> pd.DataFrame:
 
     # Load each metric independently
     metric_frames: dict[str, pd.DataFrame] = {}
-    for subdir, metric in DELTA_DIRS.items():
-        mdf = load_metric_for_run(run_dir, metric, subdir)
+    for metric in DELTA_DIRS:
+        mdf = load_metric_for_run(run_dir, metric)
         metric_frames[metric] = mdf
         print(f"    [{metric}] {len(mdf):>7,} rows across all tranches")
 
-    merged = metric_frames["aoa deltas"].copy()
+    merged = metric_frames["aoa"].copy()
     n_before = len(merged)
 
-    for metric in ("freq deltas", "phon deltas", "conc deltas"):
+    for metric in ("freq", "phon", "conc"):
         n_before_this = len(merged)
         merged = merged.merge(
             metric_frames[metric],
